@@ -1,11 +1,13 @@
 #include "mwl_wayland.hpp"
 
 #include <cerrno>
+#include <cstring>
 
 #include "wayland-xdg-shell-client-protocol.h"
 
 #include <ctime>
 #include <string>
+#include <atomic>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
@@ -72,10 +74,14 @@ namespace mwl {
         return fd;
     }
 
+    static std::atomic_uint64_t buffers_created = 0;
+    static std::atomic_uint64_t buffers_destroyed = 0;
+
     static void buffer_release(void* data, wl_buffer* buffer)
     {
         // Sent by the compositor when it's no longer using this buffer
         wl_buffer_destroy(buffer);
+        ++buffers_destroyed;
 
         const auto* impl = static_cast<WaylandScreenBufferImpl*>(data);
         munmap(impl->pixel_buffer, impl->pixel_buffer_size);
@@ -96,28 +102,70 @@ namespace mwl {
 
         if (const auto iview = std::string_view{ interface }; iview == wl_compositor_interface.name)
         {
-            impl->compositor = static_cast<wl_compositor*>(wl_registry_bind(reg, name, &wl_compositor_interface, 6));
+            impl->compositor = {
+                static_cast<wl_compositor*>(wl_registry_bind(reg, name, &wl_compositor_interface, 6)),
+                name
+            };
         }
         else if (iview == xdg_wm_base_interface.name)
         {
-            impl->xdg_data.wm_base = static_cast<xdg_wm_base*>(wl_registry_bind(reg, name, &xdg_wm_base_interface, 6));
+            impl->xdg_data.wm_base = {
+                static_cast<xdg_wm_base*>(wl_registry_bind(reg, name, &xdg_wm_base_interface, 6)),
+                name
+            };
+
             xdg_wm_base_add_listener(impl->xdg_data.wm_base, &wm_base_listener, data);
         }
         else if (iview == wl_shm_interface.name)
         {
-            impl->shm = static_cast<wl_shm*>(wl_registry_bind(reg, name, &wl_shm_interface, 1));
+            impl->shm = {
+                static_cast<wl_shm*>(wl_registry_bind(reg, name, &wl_shm_interface, 1)),
+                name
+            };
         }
     }
 
     static void registry_remove_global(void* data, wl_registry* reg, uint32_t name)
     {
+        auto* impl = static_cast<WaylandStateImpl*>(data);
 
+        if (name == impl->compositor.name)
+        {
+            wl_compositor_destroy(impl->compositor);
+        }
+        else if (name == impl->xdg_data.wm_base.name)
+        {
+            xdg_wm_base_destroy(impl->xdg_data.wm_base);
+        }
+        else if (name == impl->shm.name)
+        {
+            wl_shm_destroy(impl->shm);
+        }
     }
 
     static constexpr auto registry_listener = wl_registry_listener {
         .global = registry_receive_global,
         .global_remove = registry_remove_global,
     };
+
+    WaylandStateImpl::~WaylandStateImpl()
+    {
+        // NOTE(Peter): Manually invoking these here since it seems like
+        //              the wayland server isn't dispatching the calls on display_disconnect.
+        registry_remove_global(this, registry, compositor.name);
+        registry_remove_global(this, registry, xdg_data.wm_base.name);
+        registry_remove_global(this, registry, shm.name);
+
+        wl_registry_destroy(registry);
+
+        wl_display_flush(display);
+        wl_display_disconnect(display);
+
+        // NOTE(Peter): For some reason there are buffers that the display server
+        //              isn't telling us to destroy? Maybe track the buffers manually and clean up
+        //              the ones that are leaking.
+        std::println("Created {} buffers, destroyed {}.", buffers_created.load(), buffers_destroyed.load());
+    }
 
     void WaylandStateImpl::init()
     {
@@ -188,9 +236,16 @@ namespace mwl {
         .wm_capabilities = toplevel_wm_capabilities,
     };
 
+    WaylandWindowImpl::~WaylandWindowImpl()
+    {
+        xdg_toplevel_destroy(xdg_data.toplevel);
+        xdg_surface_destroy(xdg_data.surface);
+        wl_surface_destroy(surface);
+    }
+
     void WaylandWindowImpl::init()
     {
-        const auto* state_impl = state.unwrap<WaylandStateImpl>();
+        auto* state_impl = state.unwrap<WaylandStateImpl>();
 
         surface = wl_compositor_create_surface(state_impl->compositor);
 
@@ -207,9 +262,18 @@ namespace mwl {
         wl_surface_commit(surface);
     }
 
+    // NOTE(Peter): Wayland windows won't show up until you draw something to them.
+    //              Here we just clear the screen to #222222
+    void WaylandWindowImpl::show() const
+    {
+        const auto buffer = fetch_screen_buffer();
+        std::memset(buffer->pixel_buffer, 0xFF222222, buffer->pixel_buffer_size);
+        present_screen_buffer(buffer);
+    }
+
     auto WaylandWindowImpl::fetch_screen_buffer() const -> ScreenBuffer
     {
-        const auto* state = this->state.unwrap<WaylandStateImpl>();
+        auto* state = this->state.unwrap<WaylandStateImpl>();
         const auto stride = width * 4;
         const auto pixel_buffer_size = stride * height;
         const auto fd = allocate_shm_file(pixel_buffer_size);
@@ -229,6 +293,7 @@ namespace mwl {
 
         auto* pool = wl_shm_create_pool(state->shm, fd, pixel_buffer_size);
         auto* buffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride, WL_SHM_FORMAT_XRGB8888);
+        ++buffers_created;
         wl_shm_pool_destroy(pool);
         close(fd);
 

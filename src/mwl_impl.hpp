@@ -56,6 +56,8 @@ namespace mwl {
         int32_t height;
         std::vector<Window::CloseHandler> close_handlers;
 
+        virtual void show() const = 0;
+
         [[nodiscard]]
         virtual auto fetch_screen_buffer() const -> ScreenBuffer = 0;
         virtual void present_screen_buffer(ScreenBuffer buffer) const = 0;

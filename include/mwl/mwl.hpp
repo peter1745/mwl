@@ -61,14 +61,16 @@ namespace mwl {
         static auto create(State state, std::string_view title, int32_t width, int32_t height) -> Window;
         void destroy();
 
-        using CloseHandler = std::function<void()>;
-        void add_close_handler(CloseHandler handler) const;
+        void show() const;
 
         [[nodiscard]]
         auto width() const -> int32_t;
 
         [[nodiscard]]
         auto height() const -> int32_t;
+
+        using CloseHandler = std::function<void()>;
+        void add_close_handler(CloseHandler handler) const;
 
         [[nodiscard]]
         auto fetch_screen_buffer() const -> ScreenBuffer;

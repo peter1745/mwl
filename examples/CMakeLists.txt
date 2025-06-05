@@ -9,3 +9,4 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Example Executables
 add_executable(simple_window simple_window.cpp)
+add_executable(draw_screen_buffer draw_screen_buffer.cpp)

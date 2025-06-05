@@ -88,9 +88,9 @@ namespace mwl {
         impl = nullptr;
     }
 
-    void Window::add_close_handler(CloseHandler handler) const
+    void Window::show() const
     {
-        impl->close_handlers.emplace_back(std::move(handler));
+        impl->show();
     }
 
     auto Window::width() const -> int32_t
@@ -101,6 +101,11 @@ namespace mwl {
     auto Window::height() const -> int32_t
     {
         return impl->height;
+    }
+
+    void Window::add_close_handler(CloseHandler handler) const
+    {
+        impl->close_handlers.emplace_back(std::move(handler));
     }
 
     auto Window::fetch_screen_buffer() const -> ScreenBuffer

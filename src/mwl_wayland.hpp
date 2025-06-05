@@ -14,18 +14,28 @@ struct xdg_surface;
 struct xdg_toplevel;
 
 namespace mwl {
-
     struct WaylandWindowImpl;
+
+    template<typename WaylandObj>
+    struct wayland_global
+    {
+        WaylandObj* ptr;
+        uint32_t name;
+
+        operator WaylandObj*() { return ptr; }
+    };
 
     struct WaylandStateImpl final : State::Impl
     {
+        ~WaylandStateImpl() override;
+
         wl_display* display;
         wl_registry* registry;
-        wl_compositor* compositor;
-        wl_shm* shm;
+        wayland_global<wl_compositor> compositor;
+        wayland_global<wl_shm> shm;
 
         struct {
-            xdg_wm_base* wm_base;
+            wayland_global<xdg_wm_base> wm_base;
         } xdg_data;
 
         void init();
@@ -39,6 +49,8 @@ namespace mwl {
 
     struct WaylandWindowImpl final : Window::Impl
     {
+        ~WaylandWindowImpl() override;
+
         wl_surface* surface;
 
         struct {
@@ -47,6 +59,8 @@ namespace mwl {
         } xdg_data;
 
         void init();
+
+        void show() const override;
 
         [[nodiscard]]
         auto fetch_screen_buffer() const -> ScreenBuffer override;
