@@ -14,6 +14,19 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_library(mwl ${MWL_LIBRARY_TYPE}
     mwl.cpp)
 
+target_include_directories(mwl PUBLIC ${CMAKE_SOURCE_DIR}/include/)
+
+if (MWL_DISABLE_TRAPS)
+    target_compile_definitions(mwl PRIVATE MWL_DISABLE_TRAPS)
+endif()
+
+if (MWL_PLATFORM_LINUX)
+    target_compile_definitions(mwl PUBLIC MWL_PLATFORM_LINUX)
+    target_link_libraries(mwl PRIVATE stdc++exp)
+elseif(MWL_PLATFORM_WINDOWS)
+    target_compile_definitions(mwl PUBLIC MWL_PLATFORM_WINDOWS)
+endif()
+
 if (MWL_INCLUDE_WAYLAND)
     include(FindWayland)
     include(FindWaylandScanner)
@@ -36,4 +49,3 @@ if (MWL_INCLUDE_WAYLAND)
     endif()
 endif()
 
-target_include_directories(mwl PUBLIC ${CMAKE_SOURCE_DIR}/include/)

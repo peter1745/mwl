@@ -43,7 +43,6 @@ namespace mwl {
         struct Desc
         {
             ClientAPI client_api{};
-            bool expose_pixel_buffer = false;
         };
 
         static auto create(Desc desc) -> State;

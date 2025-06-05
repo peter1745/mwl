@@ -2,9 +2,32 @@
 
 #include "mwl/mwl.hpp"
 
+#include <print>
 #include <vector>
+#include <stacktrace>
+
+#if !defined(MWL_DISABLE_TRAPS)
+    #if defined(MWL_PLATFORM_LINUX)
+        #include <sys/signal.h>
+        #define MWL_TRAP() raise(SIGTRAP)
+    #elif defined(MWL_PLATFORM_WINDOWS)
+        #define MWL_TRAP() __debugbreak()
+    #endif
+#endif
+
+#define MWL_VERIFY(cond, msg, ...) do {\
+    if (!(cond))\
+    {\
+        auto st = std::stacktrace::current();\
+        std::println("MWL: Verify Failed. Condition: {}\nMessage: {}\nStack: {}", #cond, msg, std::to_string(st));\
+        MWL_TRAP();\
+        __VA_OPT__(return) __VA_ARGS__;\
+    }\
+} while(false)
 
 namespace mwl {
+
+    using void_t = std::void_t<>;
 
     template<>
     struct Handle<State>::Impl

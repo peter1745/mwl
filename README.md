@@ -16,7 +16,6 @@ is Wayland as that's what I'm personally using right now. There are
 no plans for supporting MacOS.
 
 ## TODO (In no particular order)
-- Disable wayland screen buffer code paths when expose_pixel_buffer is false
 - Add resize callback API
 - Add input callback APIs
 - Expose API for creating a VkSurfaceKHR

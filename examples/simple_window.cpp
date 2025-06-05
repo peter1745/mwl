@@ -4,12 +4,11 @@ int main()
 {
     auto is_running = true;
 
-    const auto mwl_state = mwl::State::create({
-        .client_api = mwl::ClientAPI::Wayland,
-        .expose_pixel_buffer = true
+    auto mwl_state = mwl::State::create({
+        .client_api = mwl::ClientAPI::Wayland
     });
 
-    const auto win = mwl::Window::create(mwl_state, "Hello", 1920, 1080);
+    auto win = mwl::Window::create(mwl_state, "Hello", 1920, 1080);
     win.add_close_handler([&] { is_running = false; });
 
     while (is_running)
@@ -34,6 +33,9 @@ int main()
         }
         win.present_screen_buffer(buffer);
     }
+
+    win.destroy();
+    mwl_state.destroy();
 
     return 0;
 }

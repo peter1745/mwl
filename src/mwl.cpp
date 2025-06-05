@@ -38,6 +38,7 @@ namespace mwl {
     void State::destroy()
     {
         delete impl;
+        impl = nullptr;
     }
 
     void State::dispatch_events() const
@@ -47,9 +48,10 @@ namespace mwl {
 
     auto ScreenBuffer::operator[](size_t idx) const -> uint32_t&
     {
+        MWL_VERIFY(impl, "Trying to index into an empty ScreenBuffer");
+        MWL_VERIFY(idx < impl->pixel_buffer_size, std::format("Trying to access ScreenBuffer out of range. idx = {}, size = {}", idx, impl->pixel_buffer_size));
         return impl->pixel_buffer[idx];
     }
-
 
     auto Window::create(State state, std::string_view title, int32_t width, int32_t height) -> Window
     {
@@ -82,7 +84,8 @@ namespace mwl {
 
     void Window::destroy()
     {
-
+        delete impl;
+        impl = nullptr;
     }
 
     void Window::add_close_handler(CloseHandler handler) const
@@ -107,6 +110,7 @@ namespace mwl {
 
     void Window::present_screen_buffer(const ScreenBuffer buffer) const
     {
+        MWL_VERIFY(buffer.is_valid(), "Trying to present an invalid ScreenBuffer", void_t{});
         impl->present_screen_buffer(buffer);
     }
 

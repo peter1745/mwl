@@ -74,7 +74,7 @@ namespace mwl {
 
     static void buffer_release(void* data, wl_buffer* buffer)
     {
-        /* Sent by the compositor when it's no longer using this buffer */
+        // Sent by the compositor when it's no longer using this buffer
         wl_buffer_destroy(buffer);
 
         const auto* impl = static_cast<WaylandScreenBufferImpl*>(data);
@@ -103,7 +103,7 @@ namespace mwl {
             impl->xdg_data.wm_base = static_cast<xdg_wm_base*>(wl_registry_bind(reg, name, &xdg_wm_base_interface, 6));
             xdg_wm_base_add_listener(impl->xdg_data.wm_base, &wm_base_listener, data);
         }
-        else if (impl->desc.expose_pixel_buffer && iview == wl_shm_interface.name)
+        else if (iview == wl_shm_interface.name)
         {
             impl->shm = static_cast<wl_shm*>(wl_registry_bind(reg, name, &wl_shm_interface, 1));
         }
