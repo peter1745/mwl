@@ -206,22 +206,29 @@ namespace mwl {
         {
             win->width = width;
             win->height = height;
+
+            if (win->size_callback)
+            {
+                win->size_callback(win->width, win->height);
+            }
         }
     }
 
 	static void toplevel_close(void* data, xdg_toplevel* toplevel)
 	{
-        static_cast<Window::Impl*>(data)->close_handler();
+        if (const auto* win = static_cast<Window::Impl*>(data); win->close_handler)
+        {
+            win->close_handler();
+        }
 	}
 
 	static void toplevel_configure_bounds(void* data, xdg_toplevel* toplevel, int32_t width, int32_t height)
 	{
-
+        MWL_VERIFY(false, "Not Implemented");
 	}
 
 	static void toplevel_wm_capabilities(void* data, xdg_toplevel* toplevel, wl_array* capabilities)
 	{
-
 	}
 
     static constexpr auto toplevel_listener = xdg_toplevel_listener {

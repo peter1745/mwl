@@ -55,6 +55,7 @@ namespace mwl {
         int32_t width;
         int32_t height;
         Window::CloseHandler close_handler;
+        Window::SizeCallback size_callback;
 
         virtual void show() const = 0;
 

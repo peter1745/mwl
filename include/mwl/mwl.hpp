@@ -72,6 +72,9 @@ namespace mwl {
         using CloseHandler = std::function<void()>;
         void set_close_handler(CloseHandler handler) const;
 
+        using SizeCallback = std::function<void(int32_t, int32_t)>;
+        void set_size_callback(SizeCallback callback) const;
+
         [[nodiscard]]
         auto fetch_screen_buffer() const -> ScreenBuffer;
         void present_screen_buffer(const ScreenBuffer buffer) const;

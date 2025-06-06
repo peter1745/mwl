@@ -108,6 +108,11 @@ namespace mwl {
         impl->close_handler = std::move(handler);
     }
 
+    void Window::set_size_callback(SizeCallback callback) const
+    {
+        impl->size_callback = std::move(callback);
+    }
+
     auto Window::fetch_screen_buffer() const -> ScreenBuffer
     {
         return impl->fetch_screen_buffer();
