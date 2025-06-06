@@ -211,12 +211,7 @@ namespace mwl {
 
 	static void toplevel_close(void* data, xdg_toplevel* toplevel)
 	{
-	    auto* win = static_cast<Window::Impl*>(data);
-
-		for (auto& handler : win->close_handlers)
-		{
-		    handler();
-		}
+        static_cast<Window::Impl*>(data)->close_handler();
 	}
 
 	static void toplevel_configure_bounds(void* data, xdg_toplevel* toplevel, int32_t width, int32_t height)

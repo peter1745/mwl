@@ -9,7 +9,7 @@ int main()
     });
 
     auto win = mwl::Window::create(mwl_state, "Hello", 1920, 1080);
-    win.add_close_handler([&] { is_running = false; });
+    win.set_close_handler([&] { is_running = false; });
     win.show();
 
     while (is_running)

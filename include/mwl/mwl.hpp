@@ -70,7 +70,7 @@ namespace mwl {
         auto height() const -> int32_t;
 
         using CloseHandler = std::function<void()>;
-        void add_close_handler(CloseHandler handler) const;
+        void set_close_handler(CloseHandler handler) const;
 
         [[nodiscard]]
         auto fetch_screen_buffer() const -> ScreenBuffer;

@@ -103,9 +103,9 @@ namespace mwl {
         return impl->height;
     }
 
-    void Window::add_close_handler(CloseHandler handler) const
+    void Window::set_close_handler(CloseHandler handler) const
     {
-        impl->close_handlers.emplace_back(std::move(handler));
+        impl->close_handler = std::move(handler);
     }
 
     auto Window::fetch_screen_buffer() const -> ScreenBuffer

@@ -54,7 +54,7 @@ namespace mwl {
         std::string_view title;
         int32_t width;
         int32_t height;
-        std::vector<Window::CloseHandler> close_handlers;
+        Window::CloseHandler close_handler;
 
         virtual void show() const = 0;
 
