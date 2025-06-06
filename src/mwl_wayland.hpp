@@ -56,8 +56,9 @@ namespace mwl {
 
         void show() const override;
 
-        [[nodiscard]]
-        auto fetch_screen_buffer() const -> ScreenBuffer override;
+        void set_fullscreen_state(bool fullscreen) override;
+
+        [[nodiscard]] auto fetch_screen_buffer() const -> ScreenBuffer override;
         void present_screen_buffer(const ScreenBuffer buffer) const override;
     };
 

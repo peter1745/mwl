@@ -296,6 +296,21 @@ namespace mwl {
         present_screen_buffer(buffer);
     }
 
+    void WaylandWindowImpl::set_fullscreen_state(bool fullscreen)
+    {
+        if (!xdg_data.wm_capabilities[XDG_TOPLEVEL_WM_CAPABILITIES_FULLSCREEN])
+        {
+            return;
+        }
+
+        is_fullscreen = fullscreen;
+
+        if (fullscreen)
+            xdg_toplevel_set_fullscreen(xdg_data.toplevel, nullptr);
+        else
+            xdg_toplevel_unset_fullscreen(xdg_data.toplevel);
+    }
+
     auto WaylandWindowImpl::fetch_screen_buffer() const -> ScreenBuffer
     {
         auto* state = this->state.unwrap<WaylandStateImpl>();

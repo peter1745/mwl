@@ -63,17 +63,17 @@ namespace mwl {
 
         void show() const;
 
-        [[nodiscard]]
-        auto width() const -> int32_t;
-
-        [[nodiscard]]
-        auto height() const -> int32_t;
+        [[nodiscard]] auto width() const -> int32_t;
+        [[nodiscard]] auto height() const -> int32_t;
 
         using CloseCallback = std::function<void()>;
         void set_close_callback(CloseCallback handler) const;
 
         using SizeCallback = std::function<void(int32_t, int32_t)>;
         void set_size_callback(SizeCallback callback) const;
+
+        void set_fullscreen_state(bool fullscreen) const;
+        [[nodiscard]] auto is_fullscreen() const -> bool;
 
         [[nodiscard]]
         auto fetch_screen_buffer() const -> ScreenBuffer;

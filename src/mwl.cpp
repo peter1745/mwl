@@ -112,6 +112,16 @@ namespace mwl {
         impl->size_callback = std::move(callback);
     }
 
+    void Window::set_fullscreen_state(bool fullscreen) const
+    {
+        impl->set_fullscreen_state(fullscreen);
+    }
+
+    auto Window::is_fullscreen() const -> bool
+    {
+        return impl->is_fullscreen;
+    }
+
     auto Window::fetch_screen_buffer() const -> ScreenBuffer
     {
         return impl->fetch_screen_buffer();

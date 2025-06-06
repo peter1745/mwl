@@ -57,10 +57,13 @@ namespace mwl {
         Window::CloseCallback close_callback;
         Window::SizeCallback size_callback;
 
+        bool is_fullscreen;
+
         virtual void show() const = 0;
 
-        [[nodiscard]]
-        virtual auto fetch_screen_buffer() const -> ScreenBuffer = 0;
+        virtual void set_fullscreen_state(bool fullscreen) = 0;
+
+        [[nodiscard]] virtual auto fetch_screen_buffer() const -> ScreenBuffer = 0;
         virtual void present_screen_buffer(ScreenBuffer buffer) const = 0;
     };
 
