@@ -5,7 +5,6 @@
 #endif
 
 #include <print>
-#include <cstdint>
 
 namespace mwl {
 

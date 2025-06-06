@@ -25,8 +25,6 @@
     }\
 } while(false)
 
-#define MWL_UNUSED(x) (void)x
-
 namespace mwl {
 
     using void_t = std::void_t<>;

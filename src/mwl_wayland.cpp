@@ -87,9 +87,8 @@ namespace mwl {
     }
     static constexpr wl_buffer_listener buffer_listener = { buffer_release };
 
-    static void xdg_wm_base_ping(void* data, xdg_wm_base* wm_base, uint32_t serial)
+    static void xdg_wm_base_ping(void*, xdg_wm_base* wm_base, uint32_t serial)
     {
-        MWL_UNUSED(data);
         xdg_wm_base_pong(wm_base, serial);
     }
 
@@ -144,10 +143,8 @@ namespace mwl {
         }
     }
 
-    static void registry_remove_global(void* data, wl_registry* reg, uint32_t name)
+    static void registry_remove_global(void* data, wl_registry*, uint32_t name)
     {
-        MWL_UNUSED(reg);
-
         if (auto* impl = static_cast<WaylandStateImpl*>(data); name == impl->compositor.name)
         {
             wl_compositor_destroy(impl->compositor);
@@ -204,19 +201,15 @@ namespace mwl {
         wl_display_dispatch(display);
     }
 
-    static void surface_configure(void* data, xdg_surface* xdg_surface, uint32_t serial)
+    static void surface_configure(void*, xdg_surface* xdg_surface, uint32_t serial)
     {
-        MWL_UNUSED(data);
         xdg_surface_ack_configure(xdg_surface, serial);
     }
 
     static constexpr auto surface_listener = xdg_surface_listener { surface_configure };
 
-    static void toplevel_configure(void* data, xdg_toplevel* toplevel, int32_t width, int32_t height, wl_array* states)
+    static void toplevel_configure(void* data, xdg_toplevel*, int32_t width, int32_t height, wl_array*)
     {
-        MWL_UNUSED(toplevel);
-        MWL_UNUSED(states);
-
 	    auto* win = static_cast<WaylandWindowImpl*>(data);
 
         if (width == 0 || height == 0)
@@ -237,30 +230,21 @@ namespace mwl {
         }
     }
 
-	static void toplevel_close(void* data, xdg_toplevel* toplevel)
+	static void toplevel_close(void* data, xdg_toplevel*)
 	{
-        MWL_UNUSED(toplevel);
-
         if (const auto* win = static_cast<Window::Impl*>(data); win->close_callback)
         {
             win->close_callback();
         }
 	}
 
-	static void toplevel_configure_bounds(void* data, xdg_toplevel* toplevel, int32_t width, int32_t height)
+	static void toplevel_configure_bounds(void*, xdg_toplevel*, int32_t, int32_t)
 	{
         MWL_VERIFY(false, "Not Implemented");
-        MWL_UNUSED(data);
-        MWL_UNUSED(toplevel);
-        MWL_UNUSED(width);
-        MWL_UNUSED(height);
 	}
 
-	static void toplevel_wm_capabilities(void* data, xdg_toplevel* toplevel, wl_array* capabilities)
+	static void toplevel_wm_capabilities(void* data, xdg_toplevel*, wl_array* capabilities)
 	{
-        MWL_UNUSED(data);
-        MWL_UNUSED(toplevel);
-
         auto* win = static_cast<WaylandWindowImpl*>(data);
         auto caps = std::span{ static_cast<uint32_t*>(capabilities->data), capabilities->size / sizeof(uint32_t) };
 
