@@ -14,8 +14,3 @@ My main goal with MWL is to write a modern but simple windowing library that can
 While I would like to properly support both X11 and Win32, my main focus for now 
 is Wayland as that's what I'm personally using right now. There are
 no plans for supporting MacOS.
-
-## TODO (In no particular order)
-- Add resize callback API
-- Add input callback APIs
-- Expose API for creating a VkSurfaceKHR
