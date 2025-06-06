@@ -174,13 +174,8 @@ namespace mwl {
 
         wl_registry_destroy(registry);
 
-        wl_display_flush(display);
+        wl_display_roundtrip(display);
         wl_display_disconnect(display);
-
-        // NOTE(Peter): For some reason there are buffers that the display server
-        //              isn't telling us to destroy? Maybe track the buffers manually and clean up
-        //              the ones that are leaking.
-        std::println("Created {} buffers, destroyed {}.", buffers_created.load(), buffers_destroyed.load());
     }
 
     void WaylandStateImpl::init()
