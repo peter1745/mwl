@@ -103,9 +103,9 @@ namespace mwl {
         return impl->height;
     }
 
-    void Window::set_close_handler(CloseHandler handler) const
+    void Window::set_close_callback(CloseCallback handler) const
     {
-        impl->close_handler = std::move(handler);
+        impl->close_callback = std::move(handler);
     }
 
     void Window::set_size_callback(SizeCallback callback) const

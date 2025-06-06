@@ -69,8 +69,8 @@ namespace mwl {
         [[nodiscard]]
         auto height() const -> int32_t;
 
-        using CloseHandler = std::function<void()>;
-        void set_close_handler(CloseHandler handler) const;
+        using CloseCallback = std::function<void()>;
+        void set_close_callback(CloseCallback handler) const;
 
         using SizeCallback = std::function<void(int32_t, int32_t)>;
         void set_size_callback(SizeCallback callback) const;

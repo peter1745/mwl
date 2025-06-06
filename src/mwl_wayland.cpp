@@ -241,9 +241,9 @@ namespace mwl {
 	{
         MWL_UNUSED(toplevel);
 
-        if (const auto* win = static_cast<Window::Impl*>(data); win->close_handler)
+        if (const auto* win = static_cast<Window::Impl*>(data); win->close_callback)
         {
-            win->close_handler();
+            win->close_callback();
         }
 	}
 

@@ -56,7 +56,7 @@ namespace mwl {
         std::string_view title;
         int32_t width;
         int32_t height;
-        Window::CloseHandler close_handler;
+        Window::CloseCallback close_callback;
         Window::SizeCallback size_callback;
 
         virtual void show() const = 0;
