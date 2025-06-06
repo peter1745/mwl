@@ -1,17 +1,7 @@
 #pragma once
 
 #include "mwl_impl.hpp"
-
-struct wl_display;
-struct wl_registry;
-struct wl_compositor;
-struct wl_surface;
-struct wl_callback;
-struct wl_shm;
-struct wl_buffer;
-struct xdg_wm_base;
-struct xdg_surface;
-struct xdg_toplevel;
+#include "wayland-xdg-shell-client-protocol.h"
 
 namespace mwl {
     struct WaylandWindowImpl;
@@ -47,6 +37,9 @@ namespace mwl {
         wl_buffer* buffer;
     };
 
+    // NOTE(Peter): Curse you XDG for not providing a XDG_TOPLEVEL_WM_CAPABILITIES_MAX value...
+    static constexpr size_t XDG_TOPLEVEL_WM_CAPABILITIES_MAX = XDG_TOPLEVEL_WM_CAPABILITIES_MINIMIZE;
+
     struct WaylandWindowImpl final : Window::Impl
     {
         ~WaylandWindowImpl() override;
@@ -56,6 +49,7 @@ namespace mwl {
         struct {
             xdg_surface* surface;
             xdg_toplevel* toplevel;
+            std::array<bool, XDG_TOPLEVEL_WM_CAPABILITIES_MAX> wm_capabilities;
         } xdg_data;
 
         void init();

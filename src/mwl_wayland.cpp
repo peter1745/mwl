@@ -1,9 +1,8 @@
 #include "mwl_wayland.hpp"
 
+#include <algorithm>
 #include <cerrno>
 #include <cstring>
-
-#include "wayland-xdg-shell-client-protocol.h"
 
 #include <ctime>
 #include <string>
@@ -12,7 +11,6 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <string_view>
-#include <wayland-client.h>
 
 namespace mwl {
 
@@ -91,26 +89,42 @@ namespace mwl {
 
     static void xdg_wm_base_ping(void* data, xdg_wm_base* wm_base, uint32_t serial)
     {
+        MWL_UNUSED(data);
         xdg_wm_base_pong(wm_base, serial);
     }
 
     static constexpr auto wm_base_listener = xdg_wm_base_listener { xdg_wm_base_ping };
 
-    static void registry_receive_global(void* data, wl_registry* reg, uint32_t name, const char* interface, uint32_t version)
+    static auto min_version(const uint32_t supported, const uint32_t requested) -> uint32_t
+    {
+        return std::min(supported, requested);
+    }
+
+    static void registry_receive_global(void* data, wl_registry* reg, uint32_t name, const char* interface, uint32_t supported_version)
     {
         auto* impl = static_cast<WaylandStateImpl*>(data);
 
         if (const auto iview = std::string_view{ interface }; iview == wl_compositor_interface.name)
         {
             impl->compositor = {
-                static_cast<wl_compositor*>(wl_registry_bind(reg, name, &wl_compositor_interface, 6)),
+                static_cast<wl_compositor*>(wl_registry_bind(
+                    reg,
+                    name,
+                    &wl_compositor_interface,
+                    min_version(supported_version, 6)
+                )),
                 name
             };
         }
         else if (iview == xdg_wm_base_interface.name)
         {
             impl->xdg_data.wm_base = {
-                static_cast<xdg_wm_base*>(wl_registry_bind(reg, name, &xdg_wm_base_interface, 6)),
+                static_cast<xdg_wm_base*>(wl_registry_bind(
+                    reg,
+                    name,
+                    &xdg_wm_base_interface,
+                    min_version(supported_version, 6)
+                )),
                 name
             };
 
@@ -119,7 +133,12 @@ namespace mwl {
         else if (iview == wl_shm_interface.name)
         {
             impl->shm = {
-                static_cast<wl_shm*>(wl_registry_bind(reg, name, &wl_shm_interface, 1)),
+                static_cast<wl_shm*>(wl_registry_bind(
+                    reg,
+                    name,
+                    &wl_shm_interface,
+                    min_version(supported_version, 1)
+                )),
                 name
             };
         }
@@ -127,9 +146,9 @@ namespace mwl {
 
     static void registry_remove_global(void* data, wl_registry* reg, uint32_t name)
     {
-        auto* impl = static_cast<WaylandStateImpl*>(data);
+        MWL_UNUSED(reg);
 
-        if (name == impl->compositor.name)
+        if (auto* impl = static_cast<WaylandStateImpl*>(data); name == impl->compositor.name)
         {
             wl_compositor_destroy(impl->compositor);
         }
@@ -187,6 +206,7 @@ namespace mwl {
 
     static void surface_configure(void* data, xdg_surface* xdg_surface, uint32_t serial)
     {
+        MWL_UNUSED(data);
         xdg_surface_ack_configure(xdg_surface, serial);
     }
 
@@ -194,6 +214,9 @@ namespace mwl {
 
     static void toplevel_configure(void* data, xdg_toplevel* toplevel, int32_t width, int32_t height, wl_array* states)
     {
+        MWL_UNUSED(toplevel);
+        MWL_UNUSED(states);
+
 	    auto* win = static_cast<WaylandWindowImpl*>(data);
 
         if (width == 0 || height == 0)
@@ -216,6 +239,8 @@ namespace mwl {
 
 	static void toplevel_close(void* data, xdg_toplevel* toplevel)
 	{
+        MWL_UNUSED(toplevel);
+
         if (const auto* win = static_cast<Window::Impl*>(data); win->close_handler)
         {
             win->close_handler();
@@ -225,10 +250,24 @@ namespace mwl {
 	static void toplevel_configure_bounds(void* data, xdg_toplevel* toplevel, int32_t width, int32_t height)
 	{
         MWL_VERIFY(false, "Not Implemented");
+        MWL_UNUSED(data);
+        MWL_UNUSED(toplevel);
+        MWL_UNUSED(width);
+        MWL_UNUSED(height);
 	}
 
 	static void toplevel_wm_capabilities(void* data, xdg_toplevel* toplevel, wl_array* capabilities)
 	{
+        MWL_UNUSED(data);
+        MWL_UNUSED(toplevel);
+
+        auto* win = static_cast<WaylandWindowImpl*>(data);
+        auto caps = std::span{ static_cast<uint32_t*>(capabilities->data), capabilities->size / sizeof(uint32_t) };
+
+        for (uint32_t i = 0; i < XDG_TOPLEVEL_WM_CAPABILITIES_MAX; ++i)
+        {
+            win->xdg_data.wm_capabilities[i] = std::ranges::contains(caps, i);
+        }
 	}
 
     static constexpr auto toplevel_listener = xdg_toplevel_listener {
@@ -258,7 +297,7 @@ namespace mwl {
         xdg_toplevel_add_listener(xdg_data.toplevel, &toplevel_listener, this);
 
         // Set window properties
-        xdg_toplevel_set_app_id(xdg_data.toplevel, "voxel-game");
+        xdg_toplevel_set_app_id(xdg_data.toplevel, title.data());
         xdg_toplevel_set_title(xdg_data.toplevel, title.data());
 
         wl_surface_commit(surface);

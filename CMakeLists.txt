@@ -13,6 +13,12 @@ else()
     set(MWL_LIBRARY_TYPE "STATIC")
 endif()
 
+if(MSVC)
+    string(REGEX REPLACE "/W[1-3]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+else()
+    add_compile_options(-Wall -Wextra -pedantic -Werror)
+endif()
+
 if (UNIX AND NOT APPLE)
     set(MWL_PLATFORM_LINUX ON)
 elseif(WIN32)
