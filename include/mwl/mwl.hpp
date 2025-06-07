@@ -99,6 +99,8 @@ namespace mwl {
 
     struct ScreenBuffer : Handle<ScreenBuffer>
     {
+        void fill(uint32_t color) const noexcept;
+
         [[nodiscard]]
         auto operator[](size_t idx) const -> uint32_t&;
     };

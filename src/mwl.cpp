@@ -4,6 +4,7 @@
     #include "mwl_wayland.hpp"
 #endif
 
+#include <cstring>
 #include <print>
 
 namespace mwl {
@@ -53,6 +54,12 @@ namespace mwl {
     auto State::get_underlying_resource_impl(UnderlyingResourceID id) const -> void*
     {
         return impl->get_underlying_resource(id);
+    }
+
+    void ScreenBuffer::fill(uint32_t color) const noexcept
+    {
+        MWL_VERIFY(impl, "Trying to fill an empty ScreenBuffer");
+        std::fill_n(impl->pixel_buffer, impl->pixel_buffer_size / sizeof(uint32_t), color);
     }
 
     auto ScreenBuffer::operator[](size_t idx) const -> uint32_t&
