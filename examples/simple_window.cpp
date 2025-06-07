@@ -12,6 +12,8 @@ int main()
     win.set_close_callback([&] { is_running = false; });
     win.show();
 
+    mwl_state.get_underlying_resource<wl_display>();
+
     while (is_running)
     {
         mwl_state.dispatch_events();

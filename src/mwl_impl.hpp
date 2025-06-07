@@ -44,6 +44,8 @@ namespace mwl {
 
         virtual ~Impl() = default;
         virtual void dispatch_events() = 0;
+
+        virtual auto get_underlying_resource(UnderlyingResourceID id) const -> void* = 0;
     };
 
     template<>
@@ -77,6 +79,8 @@ namespace mwl {
 
         [[nodiscard]] virtual auto fetch_screen_buffer() const -> ScreenBuffer = 0;
         virtual void present_screen_buffer(ScreenBuffer buffer) const = 0;
+
+        virtual auto get_underlying_resource(UnderlyingResourceID id) const -> void* = 0;
     };
 
 }

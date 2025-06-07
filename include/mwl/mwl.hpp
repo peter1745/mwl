@@ -19,12 +19,17 @@ namespace mwl {
         [[nodiscard]]
         auto is_valid() const noexcept -> bool { return impl; }
 
+        [[nodiscard]]
         operator T() const noexcept { return T(impl); }
+
+        [[nodiscard]]
         operator bool() const noexcept { return impl; }
 
+        [[nodiscard]]
         auto operator->() const noexcept -> Impl* { return impl; }
 
         template<typename I = Impl>
+        [[nodiscard]]
         auto unwrap() const noexcept -> I* { return static_cast<I*>(impl); }
 
     protected:
@@ -39,6 +44,31 @@ namespace mwl {
     #endif
     };
 
+    struct UnderlyingResourceID
+    {
+        uint16_t value;
+
+        [[nodiscard]]
+        auto operator==(const UnderlyingResourceID& other) const noexcept
+        {
+            return value == other.value;
+        }
+
+        template<typename>
+        static auto id() -> UnderlyingResourceID
+        {
+            static auto id = generic_id();
+            return { id };
+        }
+
+    private:
+        static auto generic_id() -> uint16_t
+        {
+            static uint16_t id = 0;
+            return id;
+        }
+    };
+
     struct State : Handle<State>
     {
         struct Desc
@@ -46,14 +76,27 @@ namespace mwl {
             ClientAPI client_api{};
         };
 
+        [[nodiscard]]
         static auto create(Desc desc) -> State;
         void destroy();
 
         void dispatch_events() const;
+
+        template<typename T>
+        [[nodiscard]]
+        auto get_underlying_resource() const -> T*
+        {
+            return static_cast<T*>(get_underlying_resource_impl(UnderlyingResourceID::id<T>()));
+        }
+
+    private:
+        [[nodiscard]]
+        auto get_underlying_resource_impl(UnderlyingResourceID id) const -> void*;
     };
 
     struct ScreenBuffer : Handle<ScreenBuffer>
     {
+        [[nodiscard]]
         auto operator[](size_t idx) const -> uint32_t&;
     };
 
@@ -97,11 +140,13 @@ namespace mwl {
         {
         }
 
+        [[nodiscard]]
         auto state() const noexcept -> ButtonState
         {
             return static_cast<ButtonState>(value & 0b100);
         }
 
+        [[nodiscard]]
         auto button() const noexcept -> uint8_t
         {
             return value >> 3;
@@ -120,16 +165,19 @@ namespace mwl {
         {
         }
 
+        [[nodiscard]]
         auto source() const noexcept -> ScrollSource
         {
             return static_cast<ScrollSource>(storage & 0b11);
         }
 
+        [[nodiscard]]
         auto axis() const noexcept -> ScrollAxis
         {
             return static_cast<ScrollAxis>((storage >> 2) & 0b1);
         }
 
+        [[nodiscard]]
         auto value()  const noexcept -> int8_t
         {
             return (storage >> 3) * 15;
@@ -139,6 +187,7 @@ namespace mwl {
 
     struct Window : Handle<Window>
     {
+        [[nodiscard]]
         static auto create(State state, std::string_view title, int32_t width, int32_t height) -> Window;
         void destroy();
 
@@ -171,6 +220,16 @@ namespace mwl {
         [[nodiscard]]
         auto fetch_screen_buffer() const -> ScreenBuffer;
         void present_screen_buffer(const ScreenBuffer buffer) const;
+
+        template<typename T>
+        [[nodiscard]]
+        auto get_underlying_resource() const -> T*
+        {
+            return static_cast<T*>(get_underlying_resource_impl(UnderlyingResourceID::id<T>()));
+        }
+
+    private:
+        [[nodiscard]] auto get_underlying_resource_impl(UnderlyingResourceID id) const -> void*;
     };
 
 }

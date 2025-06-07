@@ -45,6 +45,11 @@ namespace mwl {
         impl->dispatch_events();
     }
 
+    auto State::get_underlying_resource_impl(UnderlyingResourceID id) const -> void*
+    {
+        return impl->get_underlying_resource(id);
+    }
+
     auto ScreenBuffer::operator[](size_t idx) const -> uint32_t&
     {
         MWL_VERIFY(impl, "Trying to index into an empty ScreenBuffer");
@@ -151,6 +156,11 @@ namespace mwl {
     {
         MWL_VERIFY(buffer.is_valid(), "Trying to present an invalid ScreenBuffer", void_t{});
         impl->present_screen_buffer(buffer);
+    }
+
+    auto Window::get_underlying_resource_impl(UnderlyingResourceID id) const -> void*
+    {
+        return impl->get_underlying_resource(id);
     }
 
 }

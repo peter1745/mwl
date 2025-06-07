@@ -1,15 +1,14 @@
 #include "mwl_wayland.hpp"
 #include "mwl_linux_input_tables.hpp"
 
-#include <algorithm>
 #include <cerrno>
-#include <cstring>
-
 #include <ctime>
 #include <string>
 #include <atomic>
 #include <fcntl.h>
+#include <cstring>
 #include <unistd.h>
+#include <algorithm>
 #include <sys/mman.h>
 #include <string_view>
 
@@ -471,6 +470,11 @@ namespace mwl {
 
         wl_display_roundtrip(display);
         wl_display_disconnect(display);
+
+        if (buffers_created > buffers_destroyed)
+        {
+            std::println("BUFFER LEAK");
+        }
     }
 
     void WaylandStateImpl::init()
@@ -491,6 +495,17 @@ namespace mwl {
     void WaylandStateImpl::dispatch_events()
     {
         wl_display_dispatch(display);
+    }
+
+    auto WaylandStateImpl::get_underlying_resource(UnderlyingResourceID id) const -> void*
+    {
+        if (id == UnderlyingResourceID::id<wl_display>())
+        {
+            return display;
+        }
+
+        MWL_VERIFY(false, "Unsupported underlying resource!");
+        return nullptr;
     }
 
     static void surface_configure(void*, xdg_surface* xdg_surface, uint32_t serial)
@@ -644,6 +659,17 @@ namespace mwl {
     {
         wl_surface_attach(surface, buffer.unwrap<WaylandScreenBufferImpl>()->buffer, 0, 0);
         wl_surface_commit(surface);
+    }
+
+    auto WaylandWindowImpl::get_underlying_resource(UnderlyingResourceID id) const -> void*
+    {
+        if (id == UnderlyingResourceID::id<wl_surface>())
+        {
+            return surface;
+        }
+
+        MWL_VERIFY(false, "Unsupported underlying resource!");
+        return nullptr;
     }
 
 }

@@ -134,6 +134,8 @@ namespace mwl {
 
         void init();
         void dispatch_events() override;
+
+        auto get_underlying_resource(UnderlyingResourceID id) const -> void* override;
     };
 
     struct WaylandScreenBufferImpl final : ScreenBuffer::Impl
@@ -164,6 +166,8 @@ namespace mwl {
 
         [[nodiscard]] auto fetch_screen_buffer() const -> ScreenBuffer override;
         void present_screen_buffer(const ScreenBuffer buffer) const override;
+
+        auto get_underlying_resource(UnderlyingResourceID id) const -> void* override;
     };
 
 }
