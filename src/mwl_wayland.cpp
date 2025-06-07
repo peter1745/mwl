@@ -1,4 +1,5 @@
 #include "mwl_wayland.hpp"
+#include "mwl_linux_input_tables.hpp"
 
 #include <algorithm>
 #include <cerrno>
@@ -99,6 +100,286 @@ namespace mwl {
         return std::min(supported, requested);
     }
 
+    void pointer_enter(void* data, wl_pointer*, uint32_t, wl_surface* surface, wl_fixed_t, wl_fixed_t)
+    {
+        auto* impl = static_cast<WaylandStateImpl*>(data);
+        impl->input.focused_pointer_window = static_cast<WaylandWindowImpl*>(wl_surface_get_user_data(surface));
+    }
+
+	void pointer_leave(void* data, wl_pointer*, uint32_t, wl_surface*)
+	{
+        auto* impl = static_cast<WaylandStateImpl*>(data);
+        impl->input.focused_pointer_window = nullptr;
+	}
+
+	void pointer_motion(void* data, wl_pointer*, uint32_t, wl_fixed_t pointer_x, wl_fixed_t pointer_y)
+	{
+        auto* impl = static_cast<WaylandStateImpl*>(data);
+        auto* event = impl->input.fetch_event<WaylandMouseMotionEvent>();
+        event->x = wl_fixed_to_int(pointer_x);
+        event->y = wl_fixed_to_int(pointer_y);
+	}
+
+	void pointer_button(void* data, wl_pointer*, uint32_t, uint32_t, uint32_t button, uint32_t state)
+	{
+        MWL_VERIFY(button_table.contains(button), "Unknown button");
+        MWL_VERIFY(button_table.at(button) <= 31, "Cannot represent button codes above 31.");
+
+        auto* impl = static_cast<WaylandStateImpl*>(data);
+        auto* event = impl->input.fetch_event<WaylandMouseButtonEvent>();
+        event->button = button_table.at(button);
+        event->state = state == WL_KEYBOARD_KEY_STATE_PRESSED ? ButtonState::Pressed : ButtonState::Released;
+	}
+
+	void pointer_axis(void* data, wl_pointer*, uint32_t, uint32_t axis, wl_fixed_t)
+	{
+        auto* impl = static_cast<WaylandStateImpl*>(data);
+        auto* event = impl->input.fetch_event<WaylandMouseScrollEvent>();
+        event->axis = axis == WL_POINTER_AXIS_VERTICAL_SCROLL ? ScrollAxis::Vertical : ScrollAxis::Horizontal;
+	}
+
+	void pointer_axis_source(void* data, wl_pointer*, uint32_t axis_source)
+	{
+        auto* impl = static_cast<WaylandStateImpl*>(data);
+        auto* event = impl->input.fetch_event<WaylandMouseScrollEvent>();
+
+        if (axis_source == WL_POINTER_AXIS_SOURCE_WHEEL)
+        {
+            event->source = ScrollSource::Wheel;
+        }
+        else if (axis_source == WL_POINTER_AXIS_SOURCE_FINGER)
+        {
+            event->source = ScrollSource::Finger;
+        }
+        else if (axis_source == WL_POINTER_AXIS_SOURCE_CONTINUOUS)
+        {
+            event->source = ScrollSource::Continuous;
+        }
+        else if (axis_source == WL_POINTER_AXIS_SOURCE_WHEEL_TILT)
+        {
+            event->source = ScrollSource::WheelTilt;
+        }
+	}
+
+	void pointer_axis_relative_direction(void* data, wl_pointer*, uint32_t, uint32_t relative_direction)
+	{
+        auto* impl = static_cast<WaylandStateImpl*>(data);
+        auto* event = impl->input.fetch_event<WaylandMouseScrollEvent>();
+        event->scalar = relative_direction == WL_POINTER_AXIS_RELATIVE_DIRECTION_INVERTED ? -1 : 1;
+	}
+
+	void pointer_axis_value120(void* data, wl_pointer*, uint32_t, int32_t value120)
+	{
+        auto* impl = static_cast<WaylandStateImpl*>(data);
+        auto* event = impl->input.fetch_event<WaylandMouseScrollEvent>();
+        event->value = value120 / 15; // Normalize range [-8..8]
+	}
+
+	void pointer_axis_stop(void*, wl_pointer*, uint32_t, uint32_t)
+	{
+        MWL_VERIFY(false, "Not implemented.");
+	}
+
+    // NOTE(Peter): Deprecated with wl_seat versions >=8, but we need to support it anyway in case
+    //              the compositor doesn't support version 8 and above.
+	void pointer_axis_discrete(void* data, wl_pointer*, uint32_t, int32_t discrete)
+	{
+        auto* impl = static_cast<WaylandStateImpl*>(data);
+
+        if (discrete == 0)
+        {
+            // NOTE(Peter): For some reason we recieve events with a "0" step.
+            //              Since that's the equivalent of no event we'll simply ignore this.
+            impl->input.skip_current = true;
+            return;
+        }
+
+        auto* event = impl->input.fetch_event<WaylandMouseScrollEvent>();
+        event->value = discrete;
+	}
+
+    void pointer_frame(void* data, wl_pointer*)
+    {
+        auto* impl = static_cast<WaylandStateImpl*>(data);
+
+        if (!impl->input.focused_pointer_window || !impl->input.current_event)
+        {
+            return;
+        }
+
+        if (impl->input.skip_current)
+        {
+            impl->input.current_event = nullptr;
+            impl->input.skip_current = false;
+            return;
+        }
+
+        auto call_if_set = []<typename... Args>(const auto& func, Args&&... args)
+        {
+            if (!func)
+            {
+                return;
+            }
+
+            func(std::forward<Args>(args)...);
+        };
+
+        switch (impl->input.current_event->type)
+        {
+            case WaylandEventType::Button:
+            {
+                auto* event = impl->input.fetch_event<WaylandMouseButtonEvent>();
+                call_if_set(
+                    impl->input.focused_pointer_window->mouse_button_callback,
+                    MouseButtonEvent(event->button, event->state));
+                break;
+            }
+            case WaylandEventType::MouseMotion:
+            {
+                auto* event = impl->input.fetch_event<WaylandMouseMotionEvent>();
+                call_if_set(
+                    impl->input.focused_pointer_window->mouse_motion_callback,
+                    MouseMotionEvent(event->x, event->y));
+                break;
+            }
+            case WaylandEventType::Scroll:
+            {
+                auto* event = impl->input.fetch_event<WaylandMouseScrollEvent>();
+                call_if_set(
+                    impl->input.focused_pointer_window->mouse_scroll_callback,
+                    MouseScrollEvent(event->axis, event->source, event->value * event->scalar));
+                break;
+            }
+            default:
+            {
+                MWL_VERIFY(false, "Unknown Wayland event type");
+                break;
+            }
+        }
+
+        impl->input.current_event = nullptr;
+    }
+
+    static constexpr auto pointer_listener = wl_pointer_listener {
+        .enter = pointer_enter,
+        .leave = pointer_leave,
+        .motion = pointer_motion,
+        .button = pointer_button,
+        .axis = pointer_axis,
+        .frame = pointer_frame,
+        .axis_source = pointer_axis_source,
+        .axis_stop = pointer_axis_stop,
+        .axis_discrete = pointer_axis_discrete,
+        .axis_value120 = pointer_axis_value120,
+        .axis_relative_direction = pointer_axis_relative_direction,
+    };
+
+    void keyboard_keymap(void* data, wl_keyboard*, uint32_t format, int32_t fd, uint32_t size)
+    {
+        auto* impl = static_cast<WaylandStateImpl*>(data);
+
+        MWL_VERIFY(format == WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1, "Unknown keymap format");
+
+        auto* map_mem = static_cast<char*>(mmap(nullptr, size, PROT_READ, MAP_PRIVATE, fd, 0));
+        MWL_VERIFY(map_mem, "Unable to memory map keymap file");
+
+        impl->input.keymap = xkb_keymap_new_from_string(impl->input.ctx, map_mem, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+
+        munmap(map_mem, size);
+        close(fd);
+
+        impl->input.state = xkb_state_new(impl->input.keymap);
+    }
+
+	void keyboard_enter(void* data, wl_keyboard*, uint32_t, wl_surface* surface, wl_array*)
+	{
+        auto* impl = static_cast<WaylandStateImpl*>(data);
+        impl->input.focused_keyboard_window = static_cast<WaylandWindowImpl*>(wl_surface_get_user_data(surface));
+	}
+
+	void keyboard_leave(void* data, wl_keyboard*, uint32_t, wl_surface*)
+	{
+        auto* impl = static_cast<WaylandStateImpl*>(data);
+        impl->input.focused_keyboard_window = nullptr;
+	}
+
+	void keyboard_key(void* data, wl_keyboard*, uint32_t, uint32_t, uint32_t key, uint32_t state)
+	{
+        MWL_VERIFY(key_table.contains(key), "Unknown key");
+
+        auto* impl = static_cast<WaylandStateImpl*>(data);
+
+        if (!impl->input.focused_keyboard_window || !impl->input.focused_keyboard_window->key_callback)
+        {
+            return;
+        }
+
+        auto key_state = state == WL_KEYBOARD_KEY_STATE_PRESSED ? ButtonState::Pressed : ButtonState::Released;
+        impl->input.focused_keyboard_window->key_callback(KeyEvent(key_table.at(key), key_state));
+	}
+
+	void keyboard_modifiers(void* data, wl_keyboard*, uint32_t, uint32_t mods_depressed, uint32_t mods_latched, uint32_t mods_locked, uint32_t group)
+	{
+        auto* impl = static_cast<WaylandStateImpl*>(data);
+        xkb_state_update_mask(impl->input.state, mods_depressed, mods_latched, mods_locked, 0, 0, group);
+	}
+
+	void keyboard_repeat_info(void*, wl_keyboard*, int32_t, int32_t)
+	{
+        // TODO
+	}
+
+    static constexpr auto keyboard_listener = wl_keyboard_listener {
+        .keymap = keyboard_keymap,
+        .enter = keyboard_enter,
+        .leave = keyboard_leave,
+        .key = keyboard_key,
+        .modifiers = keyboard_modifiers,
+        .repeat_info = keyboard_repeat_info,
+    };
+
+    static void seat_capabilities(void* data, wl_seat* seat, uint32_t capabilities)
+    {
+        auto* impl = static_cast<WaylandStateImpl*>(data);
+
+        if (capabilities & WL_SEAT_CAPABILITY_POINTER)
+        {
+            impl->input.pointer = wl_seat_get_pointer(seat);
+            wl_pointer_add_listener(impl->input.pointer, &pointer_listener, data);
+        }
+        else if (impl->input.pointer)
+        {
+            wl_pointer_release(impl->input.pointer);
+            impl->input.pointer = nullptr;
+        }
+
+        if (capabilities & WL_SEAT_CAPABILITY_KEYBOARD)
+        {
+            impl->input.keyboard = wl_seat_get_keyboard(seat);
+            wl_keyboard_add_listener(impl->input.keyboard, &keyboard_listener, data);
+        }
+        else if (impl->input.keyboard)
+        {
+            wl_keyboard_release(impl->input.keyboard);
+            impl->input.keyboard = nullptr;
+        }
+
+        if (capabilities & WL_SEAT_CAPABILITY_TOUCH)
+        {
+            // No touch support
+        }
+    }
+
+    static void seat_name(void*, wl_seat*, const char *name)
+    {
+        std::println("Seat name = {}", name);
+    }
+
+    static constexpr auto seat_listener = wl_seat_listener {
+        .capabilities = seat_capabilities,
+        .name = seat_name
+    };
+
     static void registry_receive_global(void* data, wl_registry* reg, uint32_t name, const char* interface, uint32_t supported_version)
     {
         auto* impl = static_cast<WaylandStateImpl*>(data);
@@ -140,6 +421,20 @@ namespace mwl {
                 )),
                 name
             };
+        }
+        else if (iview == wl_seat_interface.name)
+        {
+            impl->input.seat = {
+                static_cast<wl_seat*>(wl_registry_bind(
+                    reg,
+                    name,
+                    &wl_seat_interface,
+                    min_version(supported_version, 9)
+                )),
+                name
+            };
+
+            wl_seat_add_listener(impl->input.seat, &seat_listener, data);
         }
     }
 
@@ -185,6 +480,8 @@ namespace mwl {
 
         registry = wl_display_get_registry(display);
         wl_registry_add_listener(registry, &registry_listener, this);
+
+        input.ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
 
         // Block until all pending requests are processed by the server.
         // Required to guarantee that e.g compositor is valid
@@ -268,6 +565,7 @@ namespace mwl {
         auto* state_impl = state.unwrap<WaylandStateImpl>();
 
         surface = wl_compositor_create_surface(state_impl->compositor);
+        wl_surface_set_user_data(surface, this);
 
         xdg_data.surface = xdg_wm_base_get_xdg_surface(state_impl->xdg_data.wm_base, surface);
         xdg_surface_add_listener(xdg_data.surface, &surface_listener, this);

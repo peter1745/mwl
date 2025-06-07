@@ -29,6 +29,14 @@ namespace mwl {
 
     using void_t = std::void_t<>;
 
+    // TODO(Peter): We shouldn't have virtual functions in Impl
+    //              instead we could store function pointers to the actual underlying
+    //              implementations. That way we avoid the vtable entirely.
+    //              It might be annoying to hook up the functions, but we could solve that
+    //              with e.g macro-iterating them.
+    //              Another alternative is rethinking using Handle at all here. There may
+    //              be a more optimal pattern available.
+
     template<>
     struct Handle<State>::Impl
     {
@@ -56,6 +64,10 @@ namespace mwl {
         int32_t height;
         Window::CloseCallback close_callback;
         Window::SizeCallback size_callback;
+        Window::KeyCallback key_callback;
+        Window::MouseMotionCallback mouse_motion_callback;
+        Window::MouseButtonCallback mouse_button_callback;
+        Window::MouseScrollCallback mouse_scroll_callback;
 
         bool is_fullscreen;
 

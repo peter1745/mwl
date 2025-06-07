@@ -117,6 +117,26 @@ namespace mwl {
         impl->set_fullscreen_state(fullscreen);
     }
 
+    void Window::set_key_callback(KeyCallback callback) const
+    {
+        impl->key_callback = std::move(callback);
+    }
+
+    void Window::set_mouse_motion_callback(MouseMotionCallback callback) const
+    {
+        impl->mouse_motion_callback = std::move(callback);
+    }
+
+    void Window::set_mouse_button_callback(MouseButtonCallback callback) const
+    {
+        impl->mouse_button_callback = std::move(callback);
+    }
+
+    void Window::set_mouse_scroll_callback(MouseScrollCallback callback) const
+    {
+        impl->mouse_scroll_callback = std::move(callback);
+    }
+
     auto Window::is_fullscreen() const -> bool
     {
         return impl->is_fullscreen;

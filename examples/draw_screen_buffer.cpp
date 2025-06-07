@@ -23,7 +23,7 @@ int main()
     while (is_running)
     {
         mwl_state.dispatch_events();
-        
+
         auto buffer = win.fetch_screen_buffer();
         for (int32_t x = 0; x < win.width(); x++)
         {

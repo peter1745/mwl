@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.30)
 
 # ECM
 find_package(ECM REQUIRED NO_MODULE)
+find_package(PkgConfig)
 set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
 
 set(CMAKE_C_STANDARD 23)
@@ -31,9 +32,11 @@ if (MWL_INCLUDE_WAYLAND)
     include(FindWayland)
     include(FindWaylandScanner)
 
+    pkg_check_modules(XKBCommon REQUIRED xkbcommon)
+
     target_sources(mwl PRIVATE mwl_wayland.cpp)
     target_compile_definitions(mwl PUBLIC MWL_INCLUDE_WAYLAND)
-    target_link_libraries(mwl PRIVATE ${Wayland_LIBRARIES})
+    target_link_libraries(mwl PRIVATE ${Wayland_LIBRARIES} ${XKBCommon_LIBRARIES})
 
     # Generate Wayland Protocol C files
     # NOTE: Potentially look into using hyprwayland-scanner instead

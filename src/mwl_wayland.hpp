@@ -3,6 +3,8 @@
 #include "mwl_impl.hpp"
 #include "wayland-xdg-shell-client-protocol.h"
 
+#include <xkbcommon/xkbcommon.h>
+
 namespace mwl {
     struct WaylandWindowImpl;
 
@@ -15,6 +17,44 @@ namespace mwl {
         operator WaylandObj*() { return ptr; }
     };
 
+    enum class WaylandEventType
+    {
+        None,
+        Button,
+        MouseMotion,
+        Scroll
+    };
+
+    struct WaylandEvent
+    {
+        static constexpr auto static_type = WaylandEventType::None;
+        WaylandEventType type = WaylandEventType::None;
+    };
+
+    struct WaylandMouseButtonEvent : WaylandEvent
+    {
+        static constexpr auto static_type = WaylandEventType::Button;
+        uint32_t button;
+        ButtonState state;
+    };
+
+    struct WaylandMouseMotionEvent : WaylandEvent
+    {
+        static constexpr auto static_type = WaylandEventType::MouseMotion;
+        int32_t x;
+        int32_t y;
+    };
+
+    struct WaylandMouseScrollEvent : WaylandEvent
+    {
+        static constexpr auto static_type = WaylandEventType::Scroll;
+
+        ScrollSource source;
+        ScrollAxis axis;
+        int8_t value;
+        int8_t scalar;
+    };
+
     struct WaylandStateImpl final : State::Impl
     {
         ~WaylandStateImpl() override;
@@ -23,6 +63,70 @@ namespace mwl {
         wl_registry* registry;
         wayland_global<wl_compositor> compositor;
         wayland_global<wl_shm> shm;
+
+        struct {
+            wayland_global<wl_seat> seat;
+            wl_pointer* pointer;
+            wl_keyboard* keyboard;
+
+            xkb_context* ctx;
+            xkb_keymap* keymap;
+            xkb_state* state;
+
+            WaylandWindowImpl* focused_keyboard_window;
+            WaylandWindowImpl* focused_pointer_window;
+
+            WaylandMouseButtonEvent* pre_allocated_button_event;
+            WaylandMouseMotionEvent* pre_allocated_motion_event;
+            WaylandMouseScrollEvent* pre_allocated_scroll_event;
+
+            WaylandEvent* current_event;
+            bool skip_current;
+
+            template<typename T>
+            auto allocate_if_null(T*& var) -> T*
+            {
+                if (var != nullptr)
+                {
+                    return var;
+                }
+
+                var = new T();
+                var->type = T::static_type;
+                return var;
+            }
+
+            template<typename T>
+            auto fetch_event() -> T*
+            {
+                switch (T::static_type)
+                {
+                    case WaylandEventType::Button:
+                    {
+                        current_event = allocate_if_null(pre_allocated_button_event);
+                        break;
+                    }
+                    case WaylandEventType::MouseMotion:
+                    {
+                        current_event = allocate_if_null(pre_allocated_motion_event);
+                        break;
+                    }
+                    case WaylandEventType::Scroll:
+                    {
+                        current_event = allocate_if_null(pre_allocated_scroll_event);
+                        break;
+                    }
+                    default:
+                    {
+                        MWL_VERIFY(false, "Unknown Wayland event");
+                        current_event = nullptr;
+                        break;
+                    }
+                }
+
+                return static_cast<T*>(current_event);
+            }
+        } input;
 
         struct {
             wayland_global<xdg_wm_base> wm_base;
