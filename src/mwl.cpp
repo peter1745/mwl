@@ -45,6 +45,11 @@ namespace mwl {
         impl->dispatch_events();
     }
 
+    auto State::client_api() const noexcept -> ClientAPI
+    {
+        return impl->desc.client_api;
+    }
+
     auto State::get_underlying_resource_impl(UnderlyingResourceID id) const -> void*
     {
         return impl->get_underlying_resource(id);

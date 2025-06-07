@@ -82,6 +82,9 @@ namespace mwl {
 
         void dispatch_events() const;
 
+        [[nodiscard]]
+        auto client_api() const noexcept -> ClientAPI;
+
         template<typename T>
         [[nodiscard]]
         auto get_underlying_resource() const -> T*
