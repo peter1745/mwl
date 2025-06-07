@@ -15,7 +15,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_library(mwl ${MWL_LIBRARY_TYPE}
     mwl.cpp)
 
-target_include_directories(mwl PUBLIC ${CMAKE_SOURCE_DIR}/include/)
+target_include_directories(mwl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include/)
 
 if (MWL_DISABLE_TRAPS)
     target_compile_definitions(mwl PRIVATE MWL_DISABLE_TRAPS)
