@@ -1,6 +1,8 @@
 #include "mwl_impl.hpp"
 
-#if defined(MWL_INCLUDE_WAYLAND)
+#if defined(MWL_PLATFORM_WINDOWS)
+    #include "mwl_win32.hpp"
+#elif defined(MWL_INCLUDE_WAYLAND)
     #include "mwl_wayland.hpp"
 #endif
 
@@ -13,24 +15,33 @@ namespace mwl {
     {
         Impl* state_impl = nullptr;
 
-        switch (desc.client_api)
-        {
-        #if defined(MWL_INCLUDE_WAYLAND)
-        case ClientAPI::Wayland:
-        {
-            auto* wayland_state = new WaylandStateImpl();
-            wayland_state->desc = desc;
-            wayland_state->init();
-            state_impl = wayland_state;
-            break;
-        }
+        #if defined(MWL_PLATFORM_WINDOWS)
+
+            auto* win32_state = new Win32StateImpl();
+            win32_state->desc = desc;
+            win32_state->init();
+            state_impl = win32_state;
+
+        #else
+            switch (desc.client_api)
+            {
+            #if defined(MWL_INCLUDE_WAYLAND)
+            case ClientAPI::Wayland:
+            {
+                auto* wayland_state = new WaylandStateImpl();
+                wayland_state->desc = desc;
+                wayland_state->init();
+                state_impl = wayland_state;
+                break;
+            }
+            #endif
+            default:
+            {
+                std::println("Unable to create mwl::State with ClientAPI {}.", static_cast<int32_t>(desc.client_api));
+                return {};
+            }
+            }
         #endif
-        default:
-        {
-            std::println("Unable to create wml::State with ClientAPI {}.", static_cast<int32_t>(desc.client_api));
-            return {};
-        }
-        }
 
         return { state_impl };
     }
@@ -73,27 +84,39 @@ namespace mwl {
     {
         Impl* window_impl = nullptr;
 
-        switch (state->desc.client_api)
-        {
-        #if defined(MWL_INCLUDE_WAYLAND)
-        case ClientAPI::Wayland:
-        {
-            auto* wayland_window = new WaylandWindowImpl();
-            wayland_window->state = state;
-            wayland_window->title = title;
-            wayland_window->width = width;
-            wayland_window->height = height;
-            wayland_window->init();
-            window_impl = wayland_window;
-            break;
-        }
+        #if defined(MWL_PLATFORM_WINDOWS)
+
+            auto* win32_window = new Win32WindowImpl();
+            win32_window->state = state;
+            win32_window->title = title;
+            win32_window->width = width;
+            win32_window->height = height;
+            win32_window->init();
+            window_impl = win32_window;
+
+        #else
+            switch (state->desc.client_api)
+            {
+            #if defined(MWL_INCLUDE_WAYLAND)
+            case ClientAPI::Wayland:
+            {
+                auto* wayland_window = new WaylandWindowImpl();
+                wayland_window->state = state;
+                wayland_window->title = title;
+                wayland_window->width = width;
+                wayland_window->height = height;
+                wayland_window->init();
+                window_impl = wayland_window;
+                break;
+            }
+            #endif
+            default:
+            {
+                std::println("Unable to create mwl::Window with ClientAPI {}.", static_cast<int32_t>(state->desc.client_api));
+                return {};
+            }
+            }
         #endif
-        default:
-        {
-            std::println("Unable to create wml::State with ClientAPI {}.", static_cast<int32_t>(state->desc.client_api));
-            return {};
-        }
-        }
 
         return { window_impl };
     }

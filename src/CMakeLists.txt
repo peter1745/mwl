@@ -1,10 +1,5 @@
 cmake_minimum_required(VERSION 3.30)
 
-# ECM
-find_package(ECM REQUIRED NO_MODULE)
-find_package(PkgConfig)
-set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
-
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 26)
@@ -12,8 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_library(mwl ${MWL_LIBRARY_TYPE}
-    mwl.cpp)
+add_library(mwl ${MWL_LIBRARY_TYPE} mwl.cpp)
 
 target_include_directories(mwl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include/)
 
@@ -22,9 +16,16 @@ if (MWL_DISABLE_TRAPS)
 endif()
 
 if (MWL_PLATFORM_LINUX)
+    # ECM
+    find_package(ECM REQUIRED NO_MODULE)
+    set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
+
+    find_package(PkgConfig)
+
     target_compile_definitions(mwl PUBLIC MWL_PLATFORM_LINUX)
     target_link_libraries(mwl PRIVATE stdc++exp)
 elseif(MWL_PLATFORM_WINDOWS)
+    target_sources(mwl PRIVATE mwl_win32.cpp)
     target_compile_definitions(mwl PUBLIC MWL_PLATFORM_WINDOWS)
 endif()
 
@@ -51,4 +52,3 @@ if (MWL_INCLUDE_WAYLAND)
         target_include_directories(mwl PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
     endif()
 endif()
-

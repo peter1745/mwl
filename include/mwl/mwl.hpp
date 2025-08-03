@@ -38,7 +38,7 @@ namespace mwl {
 
     enum class ClientAPI
     {
-        //TODO: Auto = 0,
+        Auto = 0,
     #if defined(MWL_INCLUDE_WAYLAND)
         Wayland,
     #endif
