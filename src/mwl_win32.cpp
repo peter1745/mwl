@@ -8,6 +8,37 @@ namespace mwl {
 
     static auto CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> LRESULT
     {
+        Win32WindowImpl* impl = nullptr;
+
+        if (msg != WM_CREATE)
+        {
+            impl = std::bit_cast<Win32WindowImpl*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+        }
+
+        switch (msg)
+        {
+            case WM_CREATE:
+            {
+                auto* create_struct = std::launder(reinterpret_cast<CREATESTRUCT*>(lparam));
+                SetWindowLongPtr(hwnd, GWLP_USERDATA, std::bit_cast<LONG_PTR>(create_struct->lpCreateParams));
+                break;
+            }
+            case WM_CLOSE:
+            {
+                impl->close_callback();
+                break;
+            }
+            case WM_DESTROY:
+            {
+                PostQuitMessage(0);
+                 break;
+            }
+            default:
+            {
+                break;
+            }
+        }
+
         return DefWindowProcA(hwnd, msg, wparam, lparam);
     }
 
@@ -66,7 +97,7 @@ namespace mwl {
 
             GetModuleHandle(nullptr),
 
-            nullptr
+            this
         );
     }
 
