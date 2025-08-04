@@ -619,7 +619,7 @@ namespace mwl {
             xdg_toplevel_unset_fullscreen(xdg_data.toplevel);
     }
 
-    auto WaylandWindowImpl::fetch_screen_buffer() const -> ScreenBuffer
+    auto WaylandWindowImpl::fetch_screen_buffer() -> ScreenBuffer
     {
         auto* state = this->state.unwrap<WaylandStateImpl>();
         const auto stride = width * 4;

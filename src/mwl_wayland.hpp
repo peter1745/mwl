@@ -164,7 +164,7 @@ namespace mwl {
 
         void set_fullscreen_state(bool fullscreen) override;
 
-        [[nodiscard]] auto fetch_screen_buffer() const -> ScreenBuffer override;
+        [[nodiscard]] auto fetch_screen_buffer() -> ScreenBuffer override;
         void present_screen_buffer(const ScreenBuffer buffer) const override;
 
         auto get_underlying_resource(UnderlyingResourceID id) const -> void* override;

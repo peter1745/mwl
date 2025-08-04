@@ -77,7 +77,7 @@ namespace mwl {
 
         virtual void set_fullscreen_state(bool fullscreen) = 0;
 
-        [[nodiscard]] virtual auto fetch_screen_buffer() const -> ScreenBuffer = 0;
+        [[nodiscard]] virtual auto fetch_screen_buffer() -> ScreenBuffer = 0;
         virtual void present_screen_buffer(ScreenBuffer buffer) const = 0;
 
         virtual auto get_underlying_resource(UnderlyingResourceID id) const -> void* = 0;

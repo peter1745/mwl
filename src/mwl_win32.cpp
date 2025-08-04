@@ -6,6 +6,36 @@ namespace mwl {
 
     static constexpr auto Win32ClassName = "MWL_WINDOW_CLASS"sv;
 
+    static void create_screen_buffer(HWND hwnd, int32_t width, int32_t height, ScreenBuffer buffer)
+    {
+        MWL_VERIFY(buffer.is_valid(), "Invalid buffer passed to create_screen_buffer");
+
+        auto* buffer_impl = buffer.unwrap<Win32ScreenBufferImpl>();
+
+        if (buffer_impl->bitmap)
+        {
+            DeleteObject(buffer_impl->bitmap);
+        }
+
+        auto dc = GetDC(hwnd);
+
+        auto bmi = BITMAPINFO {
+            .bmiHeader = {
+                .biSize = sizeof(BITMAPINFOHEADER),
+                .biWidth = width,
+                .biHeight = -height,
+                .biPlanes = 1,
+                .biBitCount = 32,
+                .biCompression = BI_RGB,
+            }
+        };
+
+        buffer_impl->bitmap = CreateDIBSection(dc, &bmi, DIB_RGB_COLORS, reinterpret_cast<void**>(&buffer_impl->pixel_buffer), nullptr, 0);
+        buffer_impl->pixel_buffer_size = width * height * sizeof(uint32_t);
+
+        ReleaseDC(hwnd, dc);
+    }
+
     static auto CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> LRESULT
     {
         Win32WindowImpl* impl = nullptr;
@@ -31,7 +61,50 @@ namespace mwl {
             case WM_DESTROY:
             {
                 PostQuitMessage(0);
-                 break;
+                break;
+            }
+            case WM_SIZE:
+            {
+                auto new_width = LOWORD(lparam);
+                auto new_height = HIWORD(lparam);
+
+                if (impl->width != new_width || impl->height != new_height)
+                {
+                    if (!impl->front_buffer.is_valid())
+                    {
+                        impl->front_buffer = { new Win32ScreenBufferImpl() };
+                        impl->back_buffer = { new Win32ScreenBufferImpl() };
+                    }
+
+                    create_screen_buffer(impl->window_handle, new_width, new_height, impl->front_buffer);
+                    create_screen_buffer(impl->window_handle, new_width, new_height, impl->back_buffer);
+
+                    GdiFlush();
+
+                    impl->width = new_width;
+                    impl->height = new_height;
+
+                    if (impl->size_callback)
+                    {
+                        impl->size_callback(impl->width, impl->height);
+                    }
+                }
+
+                break;
+            }
+            case WM_PAINT:
+            {
+                auto ps = PAINTSTRUCT{};
+                auto hdc = BeginPaint(hwnd, &ps);
+                auto hdc_bmp = CreateCompatibleDC(hdc);
+                auto old_bmp = SelectObject(hdc_bmp, impl->front_buffer.unwrap<Win32ScreenBufferImpl>()->bitmap);
+
+                BitBlt(hdc, 0, 0, impl->width, impl->height, hdc_bmp, 0, 0, SRCCOPY);
+
+                SelectObject(hdc, old_bmp);
+                DeleteDC(hdc_bmp);
+                EndPaint(hwnd, &ps);
+                break;
             }
             default:
             {
@@ -44,6 +117,7 @@ namespace mwl {
 
     Win32StateImpl::~Win32StateImpl()
     {
+        UnregisterClass(Win32ClassName.data(), GetModuleHandle(nullptr));
     }
 
     void Win32StateImpl::init()
@@ -77,6 +151,7 @@ namespace mwl {
 
     Win32WindowImpl::~Win32WindowImpl()
     {
+        DestroyWindow(window_handle);
     }
 
     void Win32WindowImpl::init()
@@ -110,13 +185,15 @@ namespace mwl {
     {
     }
 
-    auto Win32WindowImpl::fetch_screen_buffer() const -> ScreenBuffer
+    auto Win32WindowImpl::fetch_screen_buffer() -> ScreenBuffer
     {
-        return {};
+        std::swap(front_buffer, back_buffer);
+        return front_buffer;
     }
 
     void Win32WindowImpl::present_screen_buffer(const ScreenBuffer) const
     {
+        InvalidateRect(window_handle, nullptr, FALSE);
     }
 
     auto Win32WindowImpl::get_underlying_resource(UnderlyingResourceID) const -> void*
