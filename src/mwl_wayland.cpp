@@ -597,7 +597,7 @@ namespace mwl {
 
     // NOTE(Peter): Wayland windows won't show up until you draw something to them.
     //              Here we just clear the screen to #222222
-    void WaylandWindowImpl::show() const
+    void WaylandWindowImpl::show()
     {
         const auto buffer = fetch_screen_buffer();
         std::memset(buffer->pixel_buffer, 0xFF222222, buffer->pixel_buffer_size);

@@ -73,7 +73,7 @@ namespace mwl {
 
         bool is_fullscreen;
 
-        virtual void show() const = 0;
+        virtual void show() = 0;
 
         virtual void set_fullscreen_state(bool fullscreen) = 0;
 

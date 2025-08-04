@@ -176,7 +176,7 @@ namespace mwl {
         );
     }
 
-    void Win32WindowImpl::show() const
+    void Win32WindowImpl::show()
     {
         ShowWindow(window_handle, SW_SHOW);
     }

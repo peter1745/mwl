@@ -30,7 +30,7 @@ namespace mwl {
         ScreenBuffer back_buffer;
 
         void init();
-        void show() const override;
+        void show() override;
         void set_fullscreen_state(bool fullscreen) override;
 
         [[nodiscard]] auto fetch_screen_buffer() -> ScreenBuffer override;
