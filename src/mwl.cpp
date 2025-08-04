@@ -23,6 +23,12 @@ namespace mwl {
             state_impl = win32_state;
 
         #else
+            if (desc.client_api == ClientAPI::Auto)
+            {
+                auto wayland_display = std::string_view { std::getenv("WAYLAND_DISPLAY") };
+                desc.client_api = wayland_display.empty() ? ClientAPI::X11 : ClientAPI::Wayland;
+            }
+        
             switch (desc.client_api)
             {
             #if defined(MWL_INCLUDE_WAYLAND)

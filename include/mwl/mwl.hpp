@@ -39,8 +39,12 @@ namespace mwl {
     enum class ClientAPI
     {
         Auto = 0,
-    #if defined(MWL_INCLUDE_WAYLAND)
+    #if defined(MWL_PLATFORM_LINUX)
+        #if defined(MWL_INCLUDE_WAYLAND)
         Wayland,
+        #endif
+        
+        X11
     #endif
     };
 
