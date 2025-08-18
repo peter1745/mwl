@@ -50,14 +50,14 @@ namespace mwl {
     static auto allocate_shm_file(const size_t size) -> int32_t
     {
         const int32_t fd = create_shm_file();
-        
+
         if (fd < 0)
         {
             return -1;
         }
-        
+
         int32_t ret;
-        
+
         do
         {
             ret = ftruncate(fd, size);
@@ -435,6 +435,18 @@ namespace mwl {
 
             wl_seat_add_listener(impl->input.seat, &seat_listener, data);
         }
+        else if (iview == zxdg_decoration_manager_v1_interface.name)
+        {
+            impl->decoration_manager = {
+                static_cast<zxdg_decoration_manager_v1*>(wl_registry_bind(
+                    reg,
+                    name,
+                    &zxdg_decoration_manager_v1_interface,
+                    min_version(supported_version, 1)
+                )),
+                name
+            };
+        }
     }
 
     static void registry_remove_global(void* data, wl_registry*, uint32_t name)
@@ -450,6 +462,10 @@ namespace mwl {
         else if (name == impl->shm.name)
         {
             wl_shm_destroy(impl->shm);
+        }
+        else if (name == impl->decoration_manager.name)
+        {
+            zxdg_decoration_manager_v1_destroy(impl->decoration_manager);
         }
     }
 
@@ -508,9 +524,11 @@ namespace mwl {
         return nullptr;
     }
 
-    static void surface_configure(void*, xdg_surface* xdg_surface, uint32_t serial)
+    static void surface_configure(void* data, xdg_surface* xdg_surface, uint32_t serial)
     {
+        auto* impl = static_cast<WaylandWindowImpl*>(data);
         xdg_surface_ack_configure(xdg_surface, serial);
+        impl->has_valid_surface = true;
     }
 
     static constexpr auto surface_listener = xdg_surface_listener { surface_configure };
@@ -547,7 +565,9 @@ namespace mwl {
 
 	static void toplevel_configure_bounds(void*, xdg_toplevel*, int32_t, int32_t)
 	{
-        MWL_VERIFY(false, "Not Implemented");
+	    // TODO(Peter): Do we actually need to do anything here?
+	    //std::println("toplevel_configure_bounds = {}, {}", width, height);
+		//MWL_VERIFY(false, "Not Implemented");
 	}
 
 	static void toplevel_wm_capabilities(void* data, xdg_toplevel*, wl_array* capabilities)
@@ -591,6 +611,12 @@ namespace mwl {
         // Set window properties
         xdg_toplevel_set_app_id(xdg_data.toplevel, title.data());
         xdg_toplevel_set_title(xdg_data.toplevel, title.data());
+
+        if (state_impl->decoration_manager)
+        {
+            xdg_data.decoration = zxdg_decoration_manager_v1_get_toplevel_decoration(state_impl->decoration_manager, xdg_data.toplevel);
+            zxdg_toplevel_decoration_v1_set_mode(xdg_data.decoration, ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+        }
 
         wl_surface_commit(surface);
     }
@@ -657,8 +683,11 @@ namespace mwl {
 
     void WaylandWindowImpl::present_screen_buffer(const ScreenBuffer buffer) const
     {
-        wl_surface_attach(surface, buffer.unwrap<WaylandScreenBufferImpl>()->buffer, 0, 0);
-        wl_surface_commit(surface);
+        if (has_valid_surface)
+        {
+            wl_surface_attach(surface, buffer.unwrap<WaylandScreenBufferImpl>()->buffer, 0, 0);
+            wl_surface_commit(surface);
+        }
     }
 
     auto WaylandWindowImpl::get_underlying_resource(UnderlyingResourceID id) const -> void*

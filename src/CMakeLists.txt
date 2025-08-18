@@ -48,6 +48,10 @@ if (MWL_INCLUDE_WAYLAND)
         ecm_add_wayland_client_protocol(mwl
             PROTOCOL /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml
             BASENAME xdg-shell)
+        
+        ecm_add_wayland_client_protocol(mwl
+            PROTOCOL /usr/share/wayland-protocols/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
+            BASENAME xdg-decoration)
 
         target_include_directories(mwl PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
     endif()

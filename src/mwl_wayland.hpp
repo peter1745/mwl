@@ -2,6 +2,7 @@
 
 #include "mwl_impl.hpp"
 #include "wayland-xdg-shell-client-protocol.h"
+#include "wayland-xdg-decoration-client-protocol.h"
 
 #include <xkbcommon/xkbcommon.h>
 
@@ -63,6 +64,7 @@ namespace mwl {
         wl_registry* registry;
         wayland_global<wl_compositor> compositor;
         wayland_global<wl_shm> shm;
+        wayland_global<zxdg_decoration_manager_v1> decoration_manager;
 
         struct {
             wayland_global<wl_seat> seat;
@@ -152,9 +154,12 @@ namespace mwl {
 
         wl_surface* surface;
 
+        bool has_valid_surface = false;
+
         struct {
             xdg_surface* surface;
             xdg_toplevel* toplevel;
+            zxdg_toplevel_decoration_v1* decoration;
             std::array<bool, XDG_TOPLEVEL_WM_CAPABILITIES_MAX> wm_capabilities;
         } xdg_data;
 
