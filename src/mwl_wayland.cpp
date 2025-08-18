@@ -489,7 +489,7 @@ namespace mwl {
 
         if (buffers_created > buffers_destroyed)
         {
-            std::println("BUFFER LEAK");
+            std::println("Created {} buffers, destroyed {}", buffers_created.load(), buffers_destroyed.load());
         }
     }
 
@@ -626,8 +626,11 @@ namespace mwl {
     void WaylandWindowImpl::show()
     {
         const auto buffer = fetch_screen_buffer();
-        std::memset(buffer->pixel_buffer, 0xFF222222, buffer->pixel_buffer_size);
-        present_screen_buffer(buffer);
+        if (buffer)
+        {
+            std::memset(buffer->pixel_buffer, 0xFF222222, buffer->pixel_buffer_size);
+            present_screen_buffer(buffer);
+        }
     }
 
     void WaylandWindowImpl::set_fullscreen_state(bool fullscreen)
@@ -648,6 +651,13 @@ namespace mwl {
     auto WaylandWindowImpl::fetch_screen_buffer() -> ScreenBuffer
     {
         auto* state = this->state.unwrap<WaylandStateImpl>();
+
+        if (!has_valid_surface)
+        {
+            std::println("Returning invalid buffer");
+            return {};
+        }
+
         const auto stride = width * 4;
         const auto pixel_buffer_size = stride * height;
         const auto fd = allocate_shm_file(pixel_buffer_size);

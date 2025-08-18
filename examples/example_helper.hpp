@@ -5,6 +5,12 @@
 inline void draw_checkerboard(mwl::Window win)
 {
     auto buffer = win.fetch_screen_buffer();
+    
+    if (!buffer)
+    {
+        return;
+    }
+    
     for (int32_t x = 0; x < win.width(); x++)
     {
         for (int32_t y = 0; y < win.height(); y++)
@@ -19,6 +25,7 @@ inline void draw_checkerboard(mwl::Window win)
             }
         }
     }
+    
     win.present_screen_buffer(buffer);
 }
 
