@@ -204,6 +204,7 @@ namespace mwl {
 
         [[nodiscard]] auto width() const -> int32_t;
         [[nodiscard]] auto height() const -> int32_t;
+        auto preferred_scaling() const -> float;
 
         using CloseCallback = std::function<void()>;
         void set_close_callback(CloseCallback handler) const;
@@ -225,7 +226,7 @@ namespace mwl {
 
         using MouseScrollCallback = std::function<void(MouseScrollEvent)>;
         void set_mouse_scroll_callback(MouseScrollCallback callback) const;
-
+        
         [[nodiscard]]
         auto fetch_screen_buffer() const -> ScreenBuffer;
         void present_screen_buffer(const ScreenBuffer buffer) const;

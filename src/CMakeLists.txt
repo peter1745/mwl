@@ -52,6 +52,10 @@ if (MWL_INCLUDE_WAYLAND)
         ecm_add_wayland_client_protocol(mwl
             PROTOCOL /usr/share/wayland-protocols/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
             BASENAME xdg-decoration)
+        
+        ecm_add_wayland_client_protocol(mwl
+            PROTOCOL /usr/share/wayland-protocols/staging/fractional-scale/fractional-scale-v1.xml
+            BASENAME fractional-scale)
 
         target_include_directories(mwl PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
     endif()

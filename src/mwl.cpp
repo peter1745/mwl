@@ -97,6 +97,7 @@ namespace mwl {
             win32_window->title = title;
             win32_window->width = width;
             win32_window->height = height;
+            win32_window->preferred_scaling = 1.0f;
             win32_window->init();
             window_impl = win32_window;
 
@@ -111,6 +112,7 @@ namespace mwl {
                 wayland_window->title = title;
                 wayland_window->width = width;
                 wayland_window->height = height;
+                wayland_window->preferred_scaling = 1.0f;
                 wayland_window->init();
                 window_impl = wayland_window;
                 break;
@@ -146,6 +148,11 @@ namespace mwl {
     auto Window::height() const -> int32_t
     {
         return impl->height;
+    }
+    
+    auto Window::preferred_scaling() const -> float
+    {
+        return impl->preferred_scaling;
     }
 
     void Window::set_close_callback(CloseCallback handler) const

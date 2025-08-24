@@ -379,6 +379,50 @@ namespace mwl {
         .name = seat_name
     };
 
+    static void output_geometry(void* data, wl_output*, int32_t, int32_t, int32_t, int32_t, int32_t, const char* make, const char* model, int32_t)
+    {
+        static_cast<WaylandOutput*>(data)->make = make;
+        static_cast<WaylandOutput*>(data)->model = model;
+    }
+
+	static void output_mode(void*, wl_output*, uint32_t, int32_t, int32_t, int32_t)
+	{
+	}
+
+	static void output_done(void* data, wl_output*)
+	{
+        auto output = static_cast<WaylandOutput*>(data);
+
+        std::println("----- OUTPUT -----");
+        std::println("Name: {}", output->name);
+        std::println("Description: {}", output->description);
+        std::println("Make: {}", output->make);
+        std::println("Model: {}", output->model);
+	}
+
+	static void output_scale(void*, wl_output*, int32_t)
+	{
+	}
+
+	static void output_name(void* data, wl_output*, const char* name)
+	{
+	    static_cast<WaylandOutput*>(data)->name = name;
+	}
+
+	static void output_description(void* data, wl_output*, const char* description)
+	{
+	    static_cast<WaylandOutput*>(data)->description = description;
+	}
+
+    static constexpr auto output_listener = wl_output_listener {
+        .geometry = output_geometry,
+        .mode = output_mode,
+        .done = output_done,
+        .scale = output_scale,
+        .name = output_name,
+        .description = output_description
+    };
+
     static void registry_receive_global(void* data, wl_registry* reg, uint32_t name, const char* interface, uint32_t supported_version)
     {
         auto* impl = static_cast<WaylandStateImpl*>(data);
@@ -442,6 +486,40 @@ namespace mwl {
                     reg,
                     name,
                     &zxdg_decoration_manager_v1_interface,
+                    min_version(supported_version, 1)
+                )),
+                name
+            };
+        }
+        else if (iview == wl_output_interface.name)
+        {
+            auto output = std::make_unique<WaylandOutput>(WaylandOutput {
+                .global = {
+                    static_cast<wl_output*>(wl_registry_bind(
+                        reg,
+                        name,
+                        &wl_output_interface,
+                        min_version(supported_version, 4)
+                    )),
+                    name
+                },
+                .name = "",
+                .description = "",
+                .make = "",
+                .model = ""
+            });
+
+            wl_output_add_listener(output->global, &output_listener, output.get());
+
+            impl->outputs.emplace_back(std::move(output));
+        }
+        else if (iview == wp_fractional_scale_manager_v1_interface.name)
+        {
+            impl->fractional_scale_manager = {
+                static_cast<wp_fractional_scale_manager_v1*>(wl_registry_bind(
+                    reg,
+                    name,
+                    &wp_fractional_scale_manager_v1_interface,
                     min_version(supported_version, 1)
                 )),
                 name
@@ -588,6 +666,12 @@ namespace mwl {
         .wm_capabilities = toplevel_wm_capabilities,
     };
 
+    static void fractional_scale_preferred_scale(void* data, wp_fractional_scale_v1*, uint32_t scale)
+    {
+        static_cast<WaylandWindowImpl*>(data)->preferred_scaling = scale / 120.0f;
+    }
+    static constexpr auto fractional_scale_listener = wp_fractional_scale_v1_listener { fractional_scale_preferred_scale };
+
     WaylandWindowImpl::~WaylandWindowImpl()
     {
         xdg_toplevel_destroy(xdg_data.toplevel);
@@ -618,7 +702,17 @@ namespace mwl {
             zxdg_toplevel_decoration_v1_set_mode(xdg_data.decoration, ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
         }
 
+        if (state_impl->fractional_scale_manager)
+        {
+            fractional_scale = wp_fractional_scale_manager_v1_get_fractional_scale(state_impl->fractional_scale_manager, surface);
+            wp_fractional_scale_v1_add_listener(fractional_scale, &fractional_scale_listener, this);
+        }
+
         wl_surface_commit(surface);
+        
+        // NOTE(Peter): I don't entirely like doing this here, but it does ensure all window properties
+        // are set so that the user can query them immediately.
+        wl_display_roundtrip(state_impl->display);
     }
 
     // NOTE(Peter): Wayland windows won't show up until you draw something to them.

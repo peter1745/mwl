@@ -3,8 +3,11 @@
 #include "mwl_impl.hpp"
 #include "wayland-xdg-shell-client-protocol.h"
 #include "wayland-xdg-decoration-client-protocol.h"
+#include "wayland-fractional-scale-client-protocol.h"
 
 #include <xkbcommon/xkbcommon.h>
+
+#include <memory>
 
 namespace mwl {
     struct WaylandWindowImpl;
@@ -56,6 +59,15 @@ namespace mwl {
         int8_t scalar;
     };
 
+    struct WaylandOutput
+    {
+        wayland_global<wl_output> global;
+        std::string name;
+        std::string description;
+        std::string make;
+        std::string model;
+    };
+
     struct WaylandStateImpl final : State::Impl
     {
         ~WaylandStateImpl() override;
@@ -65,6 +77,9 @@ namespace mwl {
         wayland_global<wl_compositor> compositor;
         wayland_global<wl_shm> shm;
         wayland_global<zxdg_decoration_manager_v1> decoration_manager;
+        wayland_global<wp_fractional_scale_manager_v1> fractional_scale_manager;
+
+        std::vector<std::unique_ptr<WaylandOutput>> outputs;
 
         struct {
             wayland_global<wl_seat> seat;
@@ -153,7 +168,8 @@ namespace mwl {
         ~WaylandWindowImpl() override;
 
         wl_surface* surface;
-
+        wp_fractional_scale_v1* fractional_scale;
+        
         bool has_valid_surface = false;
 
         struct {

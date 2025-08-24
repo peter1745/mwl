@@ -64,6 +64,7 @@ namespace mwl {
         std::string_view title;
         int32_t width;
         int32_t height;
+        float preferred_scaling;
         Window::CloseCallback close_callback;
         Window::SizeCallback size_callback;
         Window::KeyCallback key_callback;
